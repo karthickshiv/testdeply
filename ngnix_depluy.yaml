@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind : Deployment
+metadata:
+  name: nginx-web
+  namespace: dev
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 3
+      maxUnavailable: 1
+  revisionHistoryLimit: 4
+  paused: false
+  replicas: 2
+  minReadySeconds: 10
+  selector:
+    matchLabels:
+      role: ngnix-web
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: frontend
+        role: ngnix-web
+        version: v1
+    spec:
+      containers:
+        - name: vote-app
+          image: ngnix:1.16.1
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+             - name: temp
+               mountPath: /var/www
+      volumes:
+        - name: temp
+          emptyDir: {}
+       
+
+================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ngnix-services
+  labels:
+    role: ngnix-web-pod
+  namespace: dev
+spec:
+  selector:
+    version: v1
+    role: ngnix-web
+  ports:
+    - port: 8090
+      targetPort: 80
+      nodePort: 31200
+  type: NodePort
