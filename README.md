@@ -7,82 +7,13 @@ Lets create dev namespace and place the pod.
 
 cat namespace.yaml
 ==============================================
-apiVersion: v1
-kind: Namespace
-metadata:
-     name: dev
 
-kubectl apply -f namespace.yaml
 
 kubectl config set-context $(kubectl config current-context) --namespace=dev
 
-===============================================
-filename: ngnix_depluy.yaml
 
 
-apiVersion: apps/v1
-kind : Deployment
-metadata:
-  name: nginx-web
-  namespace: dev
-spec:
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 3
-      maxUnavailable: 1
-  revisionHistoryLimit: 4
-  paused: false
-  replicas: 2
-  minReadySeconds: 10
-  selector:
-    matchLabels:
-      role: ngnix-web
-  template:
-    metadata:
-      name: nginx-pod
-      labels:
-        app: frontend
-        role: ngnix-web
-        version: v1
-    spec:
-      containers:
-        - name: vote-app
-          image: ngnix:1.16.1
-          ports:
-            - containerPort: 80
-              protocol: TCP
-          volumeMounts:
-             - name: temp
-               mountPath: /usr/share/nginx/html
-      volumes:
-        - name: temp
-          hostPath: /var/www
-       
-
-================
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: ngnix-services
-  labels:
-    role: ngnix-web-pod
-  namespace: dev
-spec:
-  selector:
-    version: v1
-    role: ngnix-web
-  ports:
-    - port: 8090
-      targetPort: 80
-      nodePort: 31200
-  type: NodePort
-
-============================================================================================================
-
-
-kubectl apply -f ngnix_depluy.yaml
+kubectl apply -f ngnix_deploy_nodeport.yaml
 kubectl apply -f ngnix_svc.yaml
 
 kubectl get po,deploy,svc
@@ -100,78 +31,8 @@ c. Make Nginx accessible via the internet on port 80
 
 file name : ngnix_deploy.yaml
 
-apiVersion: apps/v1
-kind : Deployment
-metadata:
-  name: nginx-web
-  namespace: dev
-spec:
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 3
-      maxUnavailable: 1
-  revisionHistoryLimit: 4
-  paused: false
-  replicas: 2
-  minReadySeconds: 10
-  selector:
-    matchLabels:
-      role: ngnix-web
-  template:
-    metadata:
-      name: nginx-pod
-      labels:
-        app: frontend
-        role: ngnix-web
-        version: v1
-    spec:
-       initContainers:
-        - name: install
-          image: centos
-          command: ["/bin/sh"]
-          args: ["-c", "echo hello world >> /var/www/index.html"]
-           
-          volumeMounts:
-           - name: temp
-          mountPath: "/var/www"
 
-       containers:
-        - name: vote-app
-          image: ngnix:1.16.1
-          ports:
-            - containerPort: 80
-              protocol: TCP
-          volumeMounts:
-             - name: temp
-               mountPath: /usr/share/nginx/html
-
-    volumes:
-      - name: temp
-        emptyDir: {}
-       
-
-================
-
-filename : ngnix_svc1.yaml
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: ngnix-services
-  labels:
-    role: ngnix-web-pod
-  namespace: dev
-spec:
-  selector:
-    version: v1
-    role: ngnix-web
-  ports:
-    - port: 80
-      
-  type: loadbalancer
-
-kubectl apply -f ngnix_deploy.yaml
+kubectl apply -f ngnix_deploy_loadbalancer.yaml
 kubectl apply -f ngnix_svc1.yaml
 
 from web browser http://externalip
@@ -198,57 +59,6 @@ kubectl rollout status deploy/nginx-web
 kubectl edit deploy/ngnix_deploy
 
 change ngnix image from ngnix:1.16.1 to 1.19.4
-
-apiVersion: apps/v1
-kind : Deployment
-metadata:
-  name: nginx-web
-  namespace: dev
-spec:
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 3
-      maxUnavailable: 1
-  revisionHistoryLimit: 4
-  paused: false
-  replicas: 2
-  minReadySeconds: 10
-  selector:
-    matchLabels:
-      role: ngnix-web
-  template:
-    metadata:
-      name: nginx-pod
-      labels:
-        app: frontend
-        role: ngnix-web
-        version: v1
-    spec:
-       initContainers:
-        - name: install
-          image: centos
-          command: ["/bin/sh"]
-          args: ["-c", "echo hello world >> /var/www/index.html"]
-           
-          volumeMounts:
-           - name: temp
-          mountPath: "/var/www"
-
-       containers:
-        - name: vote-app
-          image: ngnix:1.16.1
-          ports:
-            - containerPort: 80
-              protocol: TCP
-          volumeMounts:
-             - name: temp
-               mountPath: /usr/share/nginx/html
-
-    volumes:
-      - name: temp
-        emptyDir: {}
-
 
 g. Check the status of the upgrade
 
