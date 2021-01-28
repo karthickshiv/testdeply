@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind : Deployment
+metadata:
+  name: nginx-web
+  namespace: dev
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 3
+      maxUnavailable: 1
+  revisionHistoryLimit: 4
+  paused: false
+  replicas: 2
+  minReadySeconds: 10
+  selector:
+    matchLabels:
+      role: ngnix-web
+  template:
+    metadata:
+      name: nginx-pod
+      labels:
+        app: frontend
+        role: ngnix-web
+        version: v1
+    spec:
+       initContainers:
+        - name: install
+          image: centos
+          command: ["/bin/sh"]
+          args: ["-c", "echo hello world >> /var/www/index.html"]
+           
+          volumeMounts:
+           - name: temp
+          mountPath: "/var/www"
+
+       containers:
+        - name: vote-app
+          image: ngnix:1.16.1
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+             - name: temp
+               mountPath: /usr/share/nginx/html
+
+    volumes:
+      - name: temp
+        emptyDir: {}
