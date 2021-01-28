@@ -35,7 +35,7 @@ spec:
                mountPath: /usr/share/nginx/html
       volumes:
         - name: temp
-          hostPath: /var/www
+          hostPath: /var/www/v1
        
 
 ================
